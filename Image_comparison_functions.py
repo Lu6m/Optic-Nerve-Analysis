@@ -52,6 +52,20 @@ def draw3Plots(name, nb, image1, image2, image3, colormap1=plt.cm.gray, colormap
     plt.savefig(f"Results/{name}_{nb}.png", bbox_inches='tight')
     plt.close()
 
+def deleteRectangles(im):
+    _, binary = cv2.threshold(im, 10, 255, cv2.THRESH_BINARY_INV)
+    contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    rect_mask = np.ones(im.shape, dtype=np.uint8) * 255
+
+    for contour in contours:
+        x, y, w, h = cv2.boundingRect(contour)
+        if (w > 20 and h > 20) and (x < 10 or x + w > im.shape[1] - 10):
+            cv2.drawContours(rect_mask, [contour], -1, 0, -1)
+
+    rect_free_im = im.copy()
+    rect_free_im[rect_mask == 0] = 128
+    return rect_free_im
+
 def imageBrightness(im, contrast_coeff, brightness_coeff): #coeff entre 1 et 3 (en dessous de 1, diminue le contrast)
     new_image = im*contrast_coeff + brightness_coeff
     new_image = np.clip(new_image, 0, 255)  # Limit values to the range [0, 255]

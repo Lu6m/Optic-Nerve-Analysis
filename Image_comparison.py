@@ -1,4 +1,3 @@
-from Image_comparison_class import *
 from Image_comparison_functions import *
 
 import matplotlib.pyplot as plt
@@ -21,21 +20,24 @@ def imagesPrinting(image_path):
         mask = loadMask(im_name)
         drawOverlapPlot("Overlap", nb, im, mask, 0.3, colormap2=colors.ListedColormap(['white', 'red']))
 
-        egal_im = cv2.equalizeHist(im)
+        rect_free_im = deleteRectangles(im)
+        
+        egal_im = cv2.equalizeHist(rect_free_im)
         draw2Plots("Egalisation", nb, im, egal_im)
    
         brighter_im = imageBrightness(egal_im, 1.8, 0)
         draw2Plots("Brightness", nb, im, brighter_im)
 
-
-
-        im_contour = passeHaut(egal_im, nb)
+        im_contour = passeHaut(brighter_im, nb)
         draw3Plots("Contours", nb, egal_im, im_contour, mask)
 
-        # 
+        thresh = 30
+        _, seuil_im = cv2.threshold(brighter_im, thresh, 255, cv2.THRESH_BINARY_INV)
+        draw2Plots("Threshold", nb, mask, seuil_im)
 
-        ret, seuil_im = cv2.threshold(egal_im, 10, 255, cv2.THRESH_BINARY_INV)
-        draw2Plots("Seuillage", nb, mask, seuil_im)
+        closing = cv2.morphologyEx(seuil_im, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3)))
+        opening = cv2.morphologyEx(closing, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(7,7)))
+        draw2Plots("OpenClose", nb, mask, opening)
 
 
 imagesPrinting(image_path)
