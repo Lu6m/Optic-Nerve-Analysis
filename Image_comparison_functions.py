@@ -71,15 +71,25 @@ def imageBrightness(im, contrast_coeff, brightness_coeff): #coeff entre 1 et 3 (
     new_image = np.clip(new_image, 0, 255)  # Limit values to the range [0, 255]
     return new_image
 
-def adaptBrightness(im):
-    hist = cv2.calcHist([im], [0], None, [256], [0,256])
-    hist = cv2.calcHist([new_image], [0], None, [256], [0,256])
-    med_im = np.median(hist)
-    med_im = np.median(hist)
-    while 0 < med_im:
-        if 0>1:
-            new_image = imageBrightness(im, contrast_coeff, brightness_coeff)
-            return 
+def seuilHysteresis(im, highThresh, lowThresh):
+    return new_image
+
+def filtresAlternesSeq(im):
+    k=0
+    change = True
+    init_opening = im
+    while change:
+        k+=1
+        SE = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(k,k))
+        closing = cv2.morphologyEx(init_opening, cv2.MORPH_CLOSE, SE)
+        opening = cv2.morphologyEx(closing, cv2.MORPH_OPEN, SE)
+        print(type(opening))
+        print(type(init_opening))
+        if opening == init_opening:
+            change = False
+        init_opening = opening
+    return opening
+
 
 def imfilter(im,noyau):
     # Creation du bordage en miroir 
@@ -102,3 +112,13 @@ def passeHaut(im, nb):
     im_vert = imfilter(im,noyau_vert)
     im_contour = np.sqrt(im_horiz**2 + im_vert**2)
     return im_contour
+
+def quantification(im, mask):
+    false_positives = np.sum((im == 255) & (mask == 0))
+    false_negatives = np.sum((im == 0) & (mask == 255))
+    true_positives = np.sum((im == 255) & (mask == 255))
+    true_negatives = np.sum((im == 0) & (mask == 0))
+    precision = true_positives / (true_positives + false_positives) if (true_positives + false_positives) > 0 else 0
+    recall = true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0
+    f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+    return false_positives, false_negatives, true_positives, true_negatives, precision, recall, f1_score

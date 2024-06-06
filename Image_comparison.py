@@ -1,8 +1,9 @@
 from Image_comparison_functions import *
+from Image_comparison_quantif import *
 
 import matplotlib.pyplot as plt
 from matplotlib import colors
-import PIL 
+import csv
 
 # All the path 
 projet_path = os.getcwd()
@@ -15,6 +16,8 @@ if not os.path.exists(result_path):
 
 # Main function 
 def imagesPrinting(image_path):
+    results = []
+
     for nb in range(1,11):
         im_name, im = loadImage(image_path, nb)
         mask = loadMask(im_name)
@@ -25,7 +28,9 @@ def imagesPrinting(image_path):
         egal_im = cv2.equalizeHist(rect_free_im)
         draw2Plots("Egalisation", nb, im, egal_im)
    
-        brighter_im = imageBrightness(egal_im, 1.8, 0)
+        contrast_coeff = 1.8
+        brightness_coeff = 0
+        brighter_im = imageBrightness(egal_im, contrast_coeff, brightness_coeff)
         draw2Plots("Brightness", nb, im, brighter_im)
 
         im_contour = passeHaut(brighter_im, nb)
@@ -39,5 +44,24 @@ def imagesPrinting(image_path):
         opening = cv2.morphologyEx(closing, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(7,7)))
         draw2Plots("OpenClose", nb, mask, opening)
 
+        openings = filtresAlternesSeq(seuil_im)
+        draw2Plots("OpenClose", nb, mask, openings)
+
+        lowThresh = 0.4
+        highThresh = 0.8
+        hyst_im = hysteresis_thresholding(brighter_im, lowThresh, highThresh)
+        draw2Plots("OpenClose", nb, mask, openings)
+
+
+        FP, FN, TP, TN, precision, recall, f1_score = quantification(brighter_im, mask)
+        total = FP+FN+TP+TN
+        results.append([im_name, thresh, FP, FN, TP, TN, total, precision, recall, f1_score])
+
+    # Save results to CSV
+    csv_file = os.path.join(result_path, "image_metrics.csv")
+    with open(csv_file, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Image Name", "Threshold", "", "False positives", "False negatives", "True positives", "True negatives", "Total", "Precision", "Recall", "F1 Score"])
+        writer.writerows(results)
 
 imagesPrinting(image_path)
