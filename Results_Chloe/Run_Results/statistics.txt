@@ -1,0 +1,3 @@
+Mean Area: 1332.52
+Median Area: 18.00
+Standard Deviation of Area: 22375.57

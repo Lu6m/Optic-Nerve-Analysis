@@ -18,15 +18,8 @@ result_folder = os.path.join(results_path, 'Run_Results')
 if not os.path.exists(result_folder):
     os.makedirs(result_folder)
 
-# Imprimer le répertoire de travail actuel
-current_dir = os.getcwd()
-print(f"Current working directory: {current_dir}")
-
-# Lister les fichiers dans le répertoire courant
-print(f"Contents of the current directory: {os.listdir(current_dir)}")
-
 # Vérifier si le fichier image existe dans le répertoire courant
-image_path = os.path.join(current_dir, 'LC001.jpg')  # Remplacez par le chemin de votre image
+image_path = os.path.join('Lame_criblee', 'LC001.jpg')  # Remplacez par le chemin de votre image
 if not os.path.isfile(image_path):
     raise FileNotFoundError(f"Image not found at path: {image_path}")
 
