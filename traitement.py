@@ -8,13 +8,22 @@ from skimage.measure import label, regionprops
 from skimage.color import label2rgb
 import os
 
-# Créez le dossier Results s'il n'existe pas déjà
-results_path = 'Results'
+# Créez le dossier 'Results' s'il n'existe pas déjà
+results_path = 'Results_Chloe'
 if not os.path.exists(results_path):
     os.makedirs(results_path)
 
-# répertoire de travail actuel
+# Créez un sous-dossier spécifique pour les résultats de cette exécution
+result_folder = os.path.join(results_path, 'Run_Results')
+if not os.path.exists(result_folder):
+    os.makedirs(result_folder)
+
+# Imprimer le répertoire de travail actuel
 current_dir = os.getcwd()
+print(f"Current working directory: {current_dir}")
+
+# Lister les fichiers dans le répertoire courant
+print(f"Contents of the current directory: {os.listdir(current_dir)}")
 
 # Vérifier si le fichier image existe dans le répertoire courant
 image_path = os.path.join(current_dir, 'LC001.jpg')  # Remplacez par le chemin de votre image
@@ -69,8 +78,13 @@ def sequential_filtering(image):
 def laplacian_of_gaussian(image):
     return laplace(gaussian(image, sigma=3))
 
-#  workflow
-image = remove_black_rectangles(image)
+# Fonction pour sauvegarder les images
+def save_image(image, filename):
+    filepath = os.path.join(result_folder, filename)
+    plt.imsave(filepath, image, cmap='gray')
+
+# Exemple de flux de travail
+original_image = image
 manual_contrast_image = manual_contrast(image, 1.5)
 equalized_image = histogram_equalization(image)
 tophat_image = top_hat(image)
@@ -81,24 +95,37 @@ closed_image = apply_closing(opened_image)
 filtered_image = sequential_filtering(binary_otsu)
 log_image = laplacian_of_gaussian(equalized_image)
 
-# Display and save results
-plt.figure(figsize=(12, 12))
+# Sauvegarder les images traitées
+save_image(original_image, 'original_image.png')
+save_image(manual_contrast_image, 'manual_contrast_image.png')
+save_image(equalized_image, 'equalized_image.png')
+save_image(tophat_image, 'tophat_image.png')
+save_image(binary_otsu, 'binary_otsu.png')
+save_image(edges, 'edges.png')
+save_image(opened_image, 'opened_image.png')
+save_image(closed_image, 'closed_image.png')
+save_image(filtered_image, 'filtered_image.png')
+save_image(log_image, 'log_image.png')
 
-plt.subplot(331), plt.imshow(image, cmap='gray'), plt.title('Original Image')
-plt.subplot(332), plt.imshow(manual_contrast_image, cmap='gray'), plt.title('Manual Contrast')
-plt.subplot(333), plt.imshow(equalized_image, cmap='gray'), plt.title('Histogram Equalization')
-plt.subplot(334), plt.imshow(tophat_image, cmap='gray'), plt.title('Top Hat')
-plt.subplot(335), plt.imshow(binary_otsu, cmap='gray'), plt.title('Otsu Threshold')
-plt.subplot(336), plt.imshow(edges, cmap='gray'), plt.title('Hysteresis Threshold')
-plt.subplot(337), plt.imshow(opened_image, cmap='gray'), plt.title('Opening')
-plt.subplot(338), plt.imshow(closed_image, cmap='gray'), plt.title('Closing')
-plt.subplot(339), plt.imshow(filtered_image, cmap='gray'), plt.title('Sequential Filtering')
+# Comparaison des images traitées avec l'image originale
+def plot_comparison(original, processed, title_processed, filename):
+    plt.figure(figsize=(12, 6))
+    plt.subplot(121), plt.imshow(original, cmap='gray'), plt.title('Original Image')
+    plt.subplot(122), plt.imshow(processed, cmap='gray'), plt.title(title_processed)
+    comparison_path = os.path.join(result_folder, filename)
+    plt.savefig(comparison_path)
+    plt.close()
 
-# Sauvegarder la figure résultante
-result_image_path = os.path.join(results_path, 'result_image.png')
-plt.savefig(result_image_path)
-
-plt.show()
+# Comparer et sauvegarder les résultats
+plot_comparison(original_image, manual_contrast_image, 'Manual Contrast', 'comparison_manual_contrast.png')
+plot_comparison(original_image, equalized_image, 'Histogram Equalization', 'comparison_equalized_image.png')
+plot_comparison(original_image, tophat_image, 'Top Hat', 'comparison_tophat_image.png')
+plot_comparison(original_image, binary_otsu, 'Otsu Threshold', 'comparison_binary_otsu.png')
+plot_comparison(original_image, edges, 'Hysteresis Threshold', 'comparison_edges.png')
+plot_comparison(original_image, opened_image, 'Opening', 'comparison_opened_image.png')
+plot_comparison(original_image, closed_image, 'Closing', 'comparison_closed_image.png')
+plot_comparison(original_image, filtered_image, 'Sequential Filtering', 'comparison_filtered_image.png')
+plot_comparison(original_image, log_image, 'Laplacian of Gaussian', 'comparison_log_image.png')
 
 # Additional analysis and results
 regions = regionprops(label(filtered_image))
@@ -110,11 +137,8 @@ plt.hist(areas, bins=40, color='blue')
 plt.title('Distribution of Pore Areas')
 plt.xlabel('Area')
 plt.ylabel('Count')
-
-# Sauvegarder l'histogramme
-histogram_path = os.path.join(results_path, 'histogram.png')
+histogram_path = os.path.join(result_folder, 'histogram.png')
 plt.savefig(histogram_path)
-
 plt.show()
 
 # Statistical Summary
@@ -127,7 +151,7 @@ print(f"Median Area: {median_area:.2f}")
 print(f"Standard Deviation of Area: {std_area:.2f}")
 
 # Sauvegarder les statistiques dans un fichier texte
-stats_path = os.path.join(results_path, 'statistics.txt')
+stats_path = os.path.join(result_folder, 'statistics.txt')
 with open(stats_path, 'w') as f:
     f.write(f"Mean Area: {mean_area:.2f}\n")
     f.write(f"Median Area: {median_area:.2f}\n")
