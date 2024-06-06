@@ -6,6 +6,30 @@ from skimage.feature import canny
 from skimage.morphology import opening, closing, square, white_tophat, disk
 from skimage.measure import label, regionprops
 from skimage.color import label2rgb
+import os
+
+# Créez le dossier Results s'il n'existe pas déjà
+results_path = 'Results'
+if not os.path.exists(results_path):
+    os.makedirs(results_path)
+
+# répertoire de travail actuel
+current_dir = os.getcwd()
+
+# Vérifier si le fichier image existe dans le répertoire courant
+image_path = os.path.join(current_dir, 'LC001.jpg')  # Remplacez par le chemin de votre image
+if not os.path.isfile(image_path):
+    raise FileNotFoundError(f"Image not found at path: {image_path}")
+
+# Charger l'image
+image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+if image is None:
+    raise FileNotFoundError(f"Image not found or cannot be opened at path: {image_path}")
+
+# I. Introduction
+# (Introduction text, no code needed here)
+
+# II. Pré-traitement de l’image
 
 # 1. Elimination des rectangles noirs
 def remove_black_rectangles(image):
@@ -45,11 +69,7 @@ def sequential_filtering(image):
 def laplacian_of_gaussian(image):
     return laplace(gaussian(image, sigma=3))
 
-# Load and process an example image
-image_path = 'LC001.jpg'  # Replace with your image file path
-image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-
-# Example workflow
+#  workflow
 image = remove_black_rectangles(image)
 manual_contrast_image = manual_contrast(image, 1.5)
 equalized_image = histogram_equalization(image)
@@ -61,7 +81,7 @@ closed_image = apply_closing(opened_image)
 filtered_image = sequential_filtering(binary_otsu)
 log_image = laplacian_of_gaussian(equalized_image)
 
-# Display results
+# Display and save results
 plt.figure(figsize=(12, 12))
 
 plt.subplot(331), plt.imshow(image, cmap='gray'), plt.title('Original Image')
@@ -74,18 +94,27 @@ plt.subplot(337), plt.imshow(opened_image, cmap='gray'), plt.title('Opening')
 plt.subplot(338), plt.imshow(closed_image, cmap='gray'), plt.title('Closing')
 plt.subplot(339), plt.imshow(filtered_image, cmap='gray'), plt.title('Sequential Filtering')
 
+# Sauvegarder la figure résultante
+result_image_path = os.path.join(results_path, 'result_image.png')
+plt.savefig(result_image_path)
+
 plt.show()
 
 # Additional analysis and results
 regions = regionprops(label(filtered_image))
 areas = [region.area for region in regions]
 
-# Display histogram of pore areas
+# Display and save histogram of pore areas
 plt.figure(figsize=(8, 6))
 plt.hist(areas, bins=40, color='blue')
 plt.title('Distribution of Pore Areas')
 plt.xlabel('Area')
 plt.ylabel('Count')
+
+# Sauvegarder l'histogramme
+histogram_path = os.path.join(results_path, 'histogram.png')
+plt.savefig(histogram_path)
+
 plt.show()
 
 # Statistical Summary
@@ -96,3 +125,10 @@ std_area = np.std(areas)
 print(f"Mean Area: {mean_area:.2f}")
 print(f"Median Area: {median_area:.2f}")
 print(f"Standard Deviation of Area: {std_area:.2f}")
+
+# Sauvegarder les statistiques dans un fichier texte
+stats_path = os.path.join(results_path, 'statistics.txt')
+with open(stats_path, 'w') as f:
+    f.write(f"Mean Area: {mean_area:.2f}\n")
+    f.write(f"Median Area: {median_area:.2f}\n")
+    f.write(f"Standard Deviation of Area: {std_area:.2f}\n")
