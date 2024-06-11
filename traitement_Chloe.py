@@ -6,6 +6,7 @@ from skimage.feature import canny
 from skimage.morphology import opening, closing, square, white_tophat, disk
 from skimage.measure import label, regionprops
 from skimage.color import label2rgb
+from sklearn.metrics import precision_score, recall_score, f1_score, jaccard_score, mean_squared_error
 import os
 
 # Créez le dossier 'Results' s'il n'existe pas déjà
@@ -18,25 +19,41 @@ result_folder = os.path.join(results_path, 'Run_Results')
 if not os.path.exists(result_folder):
     os.makedirs(result_folder)
 
-# Vérifier si le fichier image existe dans le répertoire courant
-image_path = os.path.join('Lame_criblee', 'LC002.jpg')  # Remplacez par le chemin de votre image
-if not os.path.isfile(image_path):
-    raise FileNotFoundError(f"Image not found at path: {image_path}")
 
 # Charger l'image
+image_path = 'Lame_criblee/LC001.jpg'  # Remplacez par le chemin de votre image
 image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+
+# Appliquer le seuillage d'Otsu pour générer un masque binaire
+thresh = threshold_otsu(image)
+binary_mask = (image > thresh).astype(np.uint8) * 255
+
+# Sauvegarder le masque binaire
+mask_path = 'Terrain/LC001_VT.png'  # Remplacez par le chemin souhaité pour sauvegarder le masque
+cv2.imwrite(mask_path, binary_mask)
+
+# Afficher le masque généré
+plt.imshow(binary_mask, cmap='gray')
+plt.title('Generated Binary Mask')
+plt.show()
+if not os.path.isfile(image_path):
+    raise FileNotFoundError(f"Image not found at path: {image_path}")
+if not os.path.isfile(mask_path):
+    raise FileNotFoundError(f"Mask not found at path: {mask_path}")
+
+# Charger l'image et le masque de vérité terrain
+image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+ground_truth = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+
 if image is None:
     raise FileNotFoundError(f"Image not found or cannot be opened at path: {image_path}")
+if ground_truth is None:
+    raise FileNotFoundError(f"Mask not found or cannot be opened at path: {mask_path}")
 
-# I. Introduction
-# (Introduction text, no code needed here)
+# Convertir le masque de vérité terrain en 0 et 1
+ground_truth = (ground_truth > 128).astype(np.uint8)
 
 # II. Pré-traitement de l’image
-
-# 1. Elimination des rectangles noirs
-def remove_black_rectangles(image):
-    image[image == 0] = 128
-    return image
 
 # 2. Augmentation du contraste
 def manual_contrast(image, factor):
@@ -71,6 +88,12 @@ def sequential_filtering(image):
 def laplacian_of_gaussian(image):
     return laplace(gaussian(image, sigma=3))
 
+# Binarisation en utilisant Otsu
+def binarize(image):
+    thresh = threshold_otsu(image)
+    binary = image > thresh
+    return (binary * 255).astype(np.uint8)
+
 # Fonction pour sauvegarder les images
 def save_image(image, filename):
     filepath = os.path.join(result_folder, filename)
@@ -88,6 +111,31 @@ closed_image = apply_closing(opened_image)
 filtered_image = sequential_filtering(binary_otsu)
 log_image = laplacian_of_gaussian(equalized_image)
 
+# Générer un masque binaire à partir de l'image originale
+mask_binary = binarize(original_image)
+
+# Binarisation des images traitées
+manual_contrast_binary = binarize(manual_contrast_image)
+equalized_binary = binarize(equalized_image)
+tophat_binary = binarize(tophat_image)
+binary_otsu_binary = binarize(binary_otsu)
+edges_binary = binarize(edges)
+opened_binary = binarize(opened_image)
+closed_binary = binarize(closed_image)
+filtered_binary = binarize(filtered_image)
+log_binary = binarize(log_image)
+
+# Convertir les images binaires en 0 et 1
+manual_contrast_binary = (manual_contrast_binary > 128).astype(np.uint8)
+equalized_binary = (equalized_binary > 128).astype(np.uint8)
+tophat_binary = (tophat_binary > 128).astype(np.uint8)
+binary_otsu_binary = (binary_otsu_binary > 128).astype(np.uint8)
+edges_binary = (edges_binary > 128).astype(np.uint8)
+opened_binary = (opened_binary > 128).astype(np.uint8)
+closed_binary = (closed_binary > 128).astype(np.uint8)
+filtered_binary = (filtered_binary > 128).astype(np.uint8)
+log_binary = (log_binary > 128).astype(np.uint8)
+
 # Sauvegarder les images traitées
 save_image(original_image, 'original_image.png')
 save_image(manual_contrast_image, 'manual_contrast_image.png')
@@ -99,6 +147,18 @@ save_image(opened_image, 'opened_image.png')
 save_image(closed_image, 'closed_image.png')
 save_image(filtered_image, 'filtered_image.png')
 save_image(log_image, 'log_image.png')
+
+# Sauvegarder les images binaires
+save_image(mask_binary, 'mask_binary.png')
+save_image(manual_contrast_binary, 'manual_contrast_binary.png')
+save_image(equalized_binary, 'equalized_binary.png')
+save_image(tophat_binary, 'tophat_binary.png')
+save_image(binary_otsu_binary, 'binary_otsu_binary.png')
+save_image(edges_binary, 'edges_binary.png')
+save_image(opened_binary, 'opened_binary.png')
+save_image(closed_binary, 'closed_binary.png')
+save_image(filtered_binary, 'filtered_binary.png')
+save_image(log_binary, 'log_binary.png')
 
 # Comparaison des images traitées avec l'image originale
 def plot_comparison(original, processed, title_processed, filename):
@@ -120,32 +180,53 @@ plot_comparison(original_image, closed_image, 'Closing', 'comparison_closed_imag
 plot_comparison(original_image, filtered_image, 'Sequential Filtering', 'comparison_filtered_image.png')
 plot_comparison(original_image, log_image, 'Laplacian of Gaussian', 'comparison_log_image.png')
 
-# Additional analysis and results
-regions = regionprops(label(filtered_image))
-areas = [region.area for region in regions]
+# Comparer et sauvegarder les images binaires avec le masque binaire généré
+plot_comparison(mask_binary, manual_contrast_binary, 'Manual Contrast Binary', 'comparison_manual_contrast_binary.png')
+plot_comparison(mask_binary, equalized_binary, 'Histogram Equalization Binary', 'comparison_equalized_binary.png')
+plot_comparison(mask_binary, tophat_binary, 'Top Hat Binary', 'comparison_tophat_binary.png')
+plot_comparison(mask_binary, binary_otsu_binary, 'Otsu Threshold Binary', 'comparison_binary_otsu_binary.png')
+plot_comparison(mask_binary, edges_binary, 'Hysteresis Threshold Binary', 'comparison_edges_binary.png')
+plot_comparison(mask_binary, opened_binary, 'Opening Binary', 'comparison_opened_binary.png')
+plot_comparison(mask_binary, closed_binary, 'Closing Binary', 'comparison_closed_binary.png')
+plot_comparison(mask_binary, filtered_binary, 'Sequential Filtering Binary', 'comparison_filtered_binary.png')
+plot_comparison(mask_binary, log_binary, 'Laplacian of Gaussian Binary', 'comparison_log_binary.png')
 
-# Display and save histogram of pore areas
-plt.figure(figsize=(8, 6))
-plt.hist(areas, bins=40, color='blue')
-plt.title('Distribution of Pore Areas')
-plt.xlabel('Area')
-plt.ylabel('Count')
-histogram_path = os.path.join(result_folder, 'histogram.png')
-plt.savefig(histogram_path)
-plt.show()
+# Calcul des métriques d'évaluation
+def evaluate_segmentation(predicted, ground_truth):
+    predicted_flat = predicted.flatten()
+    ground_truth_flat = ground_truth.flatten()
 
-# Statistical Summary
-mean_area = np.mean(areas)
-median_area = np.median(areas)
-std_area = np.std(areas)
+    precision = precision_score(ground_truth_flat, predicted_flat, pos_label=1)
+    recall = recall_score(ground_truth_flat, predicted_flat, pos_label=1)
+    f1 = f1_score(ground_truth_flat, predicted_flat, pos_label=1)
+    jaccard = jaccard_score(ground_truth_flat, predicted_flat, pos_label=1)
+    mse = mean_squared_error(ground_truth_flat, predicted_flat)
 
-print(f"Mean Area: {mean_area:.2f}")
-print(f"Median Area: {median_area:.2f}")
-print(f"Standard Deviation of Area: {std_area:.2f}")
+    return precision, recall, f1, jaccard, mse
+
+# Évaluation des différentes méthodes
+performance_metrics = {
+    'Manual Contrast': evaluate_segmentation(manual_contrast_binary, ground_truth),
+    'Histogram Equalization': evaluate_segmentation(equalized_binary, ground_truth),
+    'Top Hat': evaluate_segmentation(tophat_binary, ground_truth),
+    'Otsu Threshold': evaluate_segmentation(binary_otsu_binary, ground_truth),
+    'Hysteresis Threshold': evaluate_segmentation(edges_binary, ground_truth),
+    'Opening': evaluate_segmentation(opened_binary, ground_truth),
+    'Closing': evaluate_segmentation(closed_binary, ground_truth),
+    'Sequential Filtering': evaluate_segmentation(filtered_binary, ground_truth),
+    'Laplacian of Gaussian': evaluate_segmentation(log_binary, ground_truth)
+}
 
 # Sauvegarder les statistiques dans un fichier texte
-stats_path = os.path.join(result_folder, 'statistics.txt')
+stats_path = os.path.join(results_path, 'performance_metrics.txt')
 with open(stats_path, 'w') as f:
-    f.write(f"Mean Area: {mean_area:.2f}\n")
-    f.write(f"Median Area: {median_area:.2f}\n")
-    f.write(f"Standard Deviation of Area: {std_area:.2f}\n")
+    for method, metrics in performance_metrics.items():
+        precision, recall, f1, jaccard, mse = metrics
+        f.write(f"{method}:\n")
+        f.write(f"  Precision: {precision:.4f}\n")
+        f.write(f"  Recall: {recall:.4f}\n")
+        f.write(f"  F1 Score: {f1:.4f}\n")
+        f.write(f"  Jaccard Index: {jaccard:.4f}\n")
+        f.write(f"  Mean Squared Error: {mse:.4f}\n\n")
+
+print("Performance metrics have been saved to performance_metrics.txt")

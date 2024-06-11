@@ -1,0 +1,63 @@
+Manual Contrast:
+  Precision: 0.6802
+  Recall: 1.0000
+  F1 Score: 0.8097
+  Jaccard Index: 0.6802
+  Mean Squared Error: 0.0675
+
+Histogram Equalization:
+  Precision: 0.2804
+  Recall: 1.0000
+  F1 Score: 0.4380
+  Jaccard Index: 0.2804
+  Mean Squared Error: 0.3685
+
+Top Hat:
+  Precision: 0.8386
+  Recall: 0.5943
+  F1 Score: 0.6956
+  Jaccard Index: 0.5333
+  Mean Squared Error: 0.0747
+
+Otsu Threshold:
+  Precision: 0.2804
+  Recall: 1.0000
+  F1 Score: 0.4380
+  Jaccard Index: 0.2804
+  Mean Squared Error: 0.3685
+
+Hysteresis Threshold:
+  Precision: 0.0357
+  Recall: 0.0649
+  F1 Score: 0.0460
+  Jaccard Index: 0.0236
+  Mean Squared Error: 0.3862
+
+Opening:
+  Precision: 0.3259
+  Recall: 0.9990
+  F1 Score: 0.4915
+  Jaccard Index: 0.3258
+  Mean Squared Error: 0.2969
+
+Closing:
+  Precision: 0.3059
+  Recall: 0.9991
+  F1 Score: 0.4684
+  Jaccard Index: 0.3058
+  Mean Squared Error: 0.3257
+
+Sequential Filtering:
+  Precision: 0.2556
+  Recall: 0.9997
+  F1 Score: 0.4071
+  Jaccard Index: 0.2556
+  Mean Squared Error: 0.4182
+
+Laplacian of Gaussian:
+  Precision: 0.2585
+  Recall: 0.9738
+  F1 Score: 0.4086
+  Jaccard Index: 0.2567
+  Mean Squared Error: 0.4049
+
