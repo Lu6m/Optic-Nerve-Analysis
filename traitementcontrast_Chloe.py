@@ -11,7 +11,7 @@ if not os.path.exists(results_path):
     os.makedirs(results_path)
 
 # Créez un sous-dossier spécifique pour les résultats de cette exécution
-result_folder = os.path.join(results_path, 'Contrast_Results')
+result_folder = os.path.join(results_path, 'Mask_Results')
 if not os.path.exists(result_folder):
     os.makedirs(result_folder)
 
@@ -60,6 +60,9 @@ equalized_image = histogram_equalization(image)
 tophat_image = top_hat(image)
 log_image = laplacian_of_gaussian(image)
 
+# Générer un masque binaire à partir de l'image originale
+mask_binary = binarize(original_image)
+
 # Binarisation des images traitées
 manual_contrast_binary = binarize(manual_contrast_image)
 equalized_binary = binarize(equalized_image)
@@ -74,6 +77,7 @@ save_image(tophat_image, 'tophat_image.png')
 save_image(log_image, 'log_image.png')
 
 # Sauvegarder les images binaires
+save_image(mask_binary, 'mask_binary.png')
 save_image(manual_contrast_binary, 'manual_contrast_binary.png')
 save_image(equalized_binary, 'equalized_binary.png')
 save_image(tophat_binary, 'tophat_binary.png')
@@ -94,8 +98,8 @@ plot_comparison(original_image, equalized_image, 'Histogram Equalization', 'comp
 plot_comparison(original_image, tophat_image, 'Top Hat', 'comparison_tophat_image.png')
 plot_comparison(original_image, log_image, 'Laplacian of Gaussian', 'comparison_log_image.png')
 
-# Comparer et sauvegarder les images binaires
-plot_comparison(original_image, manual_contrast_binary, 'Manual Contrast Binary', 'comparison_manual_contrast_binary.png')
-plot_comparison(original_image, equalized_binary, 'Histogram Equalization Binary', 'comparison_equalized_binary.png')
-plot_comparison(original_image, tophat_binary, 'Top Hat Binary', 'comparison_tophat_binary.png')
-plot_comparison(original_image, log_binary, 'Laplacian of Gaussian Binary', 'comparison_log_binary.png')
+# Comparer et sauvegarder les images binaires avec le masque binaire généré
+plot_comparison(mask_binary, manual_contrast_binary, 'Manual Contrast Binary', 'comparison_manual_contrast_binary.png')
+plot_comparison(mask_binary, equalized_binary, 'Histogram Equalization Binary', 'comparison_equalized_binary.png')
+plot_comparison(mask_binary, tophat_binary, 'Top Hat Binary', 'comparison_tophat_binary.png')
+plot_comparison(mask_binary, log_binary, 'Laplacian of Gaussian Binary', 'comparison_log_binary.png')
