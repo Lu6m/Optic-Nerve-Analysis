@@ -37,21 +37,22 @@ def loadMask(im_name):
 ###########################################################################
 ####### Afficher images 
 ###########################################################################
-def draw1Plot(name, nb, image1):
+def draw1Plot(result_path, name, nb, image1):
     plt.figure()
     plt.axis('off')
-    plt.imsave(f"Results/{name}_{nb}.png", image1)
+    plt.imsave(os.path.join(result_path,f'{name}_{nb}.png'), image1, cmap = plt.cm.gray)
+    plt.close()
 
-def drawOverlapPlot(name, nb, image1, image2, alpha, name1='', colormap1=plt.cm.gray, colormap2=plt.cm.gray):
+def drawOverlapPlot(result_path, name, nb, image1, image2, alpha, name1='', colormap1=plt.cm.gray, colormap2=plt.cm.gray):
     plt.figure()
     plt.imshow(image1, cmap=colormap1)
     plt.imshow(image2, cmap=colormap2, alpha = alpha)
     plt.axis('off')
     plt.title(name1)
-    plt.savefig(f"Results/{name}_{nb}.png", bbox_inches='tight')
+    plt.savefig(os.path.join(result_path,f"{name}_{nb}.png"), bbox_inches='tight')
     plt.close()
 
-def draw2Plots(name, nb, image1, image2, name1 = '', name2='', colormap1=plt.cm.gray, colormap2=plt.cm.gray):
+def draw2Plots(result_path, name, nb, image1, image2, name1 = '', name2='', colormap1=plt.cm.gray, colormap2=plt.cm.gray):
     fig, axes = plt.subplots(1, 2)
     axes[0].imshow(image1, cmap=colormap1)
     axes[0].set_title(name1)
@@ -59,10 +60,10 @@ def draw2Plots(name, nb, image1, image2, name1 = '', name2='', colormap1=plt.cm.
     axes[1].set_title(name2)
     for ax in axes:
         ax.axis('off')
-    plt.savefig(f"Results/{name}_{nb}.png", bbox_inches='tight')
+    plt.savefig(os.path.join(result_path,f"{name}_{nb}.png"), bbox_inches='tight')
     plt.close()
 
-def draw3Plots(name, nb, image1, image2, image3, name1='', name2='', name3='',colormap1=plt.cm.gray, colormap2=plt.cm.gray, colormap3=plt.cm.gray):
+def draw3Plots(result_path, name, nb, image1, image2, image3, name1='', name2='', name3='',colormap1=plt.cm.gray, colormap2=plt.cm.gray, colormap3=plt.cm.gray):
     fig, axes = plt.subplots(1, 3)
     axes[0].imshow(image1, cmap=colormap1)
     axes[0].set_title(name1)
@@ -72,7 +73,7 @@ def draw3Plots(name, nb, image1, image2, image3, name1='', name2='', name3='',co
     axes[2].set_title(name3)
     for ax in axes:
         ax.axis('off')
-    plt.savefig(f"Results/{name}_{nb}.png", bbox_inches='tight')
+    plt.savefig(os.path.join(result_path,f"{name}_{nb}.png"), bbox_inches='tight')
     plt.close()
 
 
@@ -106,45 +107,32 @@ def threshold(im, thresh):
     _, seuil_im = cv2.threshold(blur_im, thresh, 255, cv2.THRESH_BINARY_INV)
     seuil_im = cv2.bitwise_not(seuil_im)
     filled_seuil_im = fillHoles(seuil_im)
-    return filled_seuil_im
+    return seuil_im, filled_seuil_im
 
 def openClose(im, thresh):
-    SE7 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(7,7))
-    SE9 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(9,9))
+    SE7 = cv2.getStructuringElement(cv2.MORPH_RECT,(7,7))
+    SE9 = cv2.getStructuringElement(cv2.MORPH_RECT,(9,9))
 
-    opening3 = cv2.morphologyEx(im, cv2.MORPH_OPEN, SE7)
-    closing3 = cv2.morphologyEx(opening3, cv2.MORPH_CLOSE, SE9)
-    _, close_seuil_im = cv2.threshold(closing3, thresh, 255, cv2.THRESH_BINARY_INV)
+    opening = cv2.morphologyEx(im, cv2.MORPH_OPEN, SE7)
+
+    closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, SE9)
+    _, close_seuil_im = cv2.threshold(closing, thresh, 255, cv2.THRESH_BINARY_INV)
     close_seuil_im = cv2.bitwise_not(close_seuil_im)
     filled_close_seuil_im = fillHoles(close_seuil_im)
-    return filled_close_seuil_im
-
-def topHat(bin_im):
-    k = 30
-    change = True
-    init_tophat = bin_im
-    while change : 
-        k+=1
-        SE = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(k,k))
-        tophat_im = cv2.morphologyEx(init_tophat, cv2.MORPH_TOPHAT, SE)
-        filled_tophat_im = fillHoles(tophat_im)
-        if np.array_equal(filled_tophat_im, init_tophat):
-            change = False
-        init_tophat = filled_tophat_im
-    print(k)
-    return filled_tophat_im
+    return opening, closing, close_seuil_im, filled_close_seuil_im
 
 
-def FAS(bin_im, MAX_TAILLE):
+def FAS(im, MAX_TAILLE):
     tailles = range(1, MAX_TAILLE + 1)
 
     SE = [disk(r) for r in tailles]
-    fas = bin_im.copy()
+    fas = im.copy()
 
     # Débruitage par FAS
     for se in SE:
         openR = reconstruction(binary_opening(fas, se), fas)  # Ouverture par reconstruction
         fas = 1 - reconstruction(1 - binary_closing(openR, se), 1 - openR)  # Fermeture par reconstruction
+    
     return fas
 
 
@@ -192,51 +180,13 @@ def fillHoles(im):
 ######## Contours 
 ###########################################################################
 
-def imfilter(im,noyau):
-    # Creation du bordage en miroir 
-    h,w = np.shape(noyau)
-    hbis = int(np.floor(h/2))
-    wbis = int(np.floor(w/2))
-    im_bis = np.pad(im, ((hbis,hbis),(wbis,wbis)),'symmetric')
-    [Hbis,Wbis] = im_bis.shape
-    # Delete le bordage 
-    conv = sp.signal.convolve2d(im_bis, noyau)
-    conv_bis = conv[hbis:Hbis-hbis, wbis:Wbis-wbis]
-    return conv_bis
-
-# Filtre dérivatuer, passe haut 
-def passeHaut(im, nb): 
-    noyau_horiz = np.array([[-1, 0, 1]])
-    noyau_vert = np.array([[-1], [0], [1]])
-
-    im_horiz = imfilter(im,noyau_horiz)
-    im_vert = imfilter(im,noyau_vert)
-    im_contour = np.sqrt(im_horiz**2 + im_vert**2)
-    return im_contour
-
-###########################################################################
-###### Define the quantifications to determine which image is better
-###########################################################################
-def quantification(im, mask):
-    false_positives = np.sum((im == 1) & (mask == 0))
-    false_negatives = np.sum((im == 0) & (mask == 1))
-    true_positives = np.sum((im == 1) & (mask == 1))
-    true_negatives = np.sum((im == 0) & (mask == 0))
-    false_positives += np.sum((im == 255) & (mask == 0))
-    false_negatives += np.sum((im == 0) & (mask == 255))
-    true_positives += np.sum((im == 255) & (mask == 255))
-    true_negatives += np.sum((im == 0) & (mask == 0))
-    precision = true_positives / (true_positives + false_positives) if (true_positives + false_positives) > 0 else 0
-    recall = true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0
-    f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
-    return [false_positives, false_negatives, true_positives, true_negatives, precision, recall, f1_score]
-
-def contoursCaracteristics(bin_im):
+def contoursCaracteristics(bin_im, min_area):
     edges = bin_im.copy()
-    shape_count = 0
-    total_area = 0
-    total_perimeter = 0
+    shape_count, total_area, total_perimeter = 0, 0, 0
+    areas = []
     edges = edges.astype(np.uint8)
+    filled_contours = np.zeros_like(edges)
+
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     for contour in contours:
         # Approximation du contour
@@ -253,27 +203,81 @@ def contoursCaracteristics(bin_im):
 
         # Filtrer les formes en fonction de leurs caractéristiques
         area = cv2.contourArea(contour)
-        if area > 100:  # Filtrer par taille
+        if area > min_area:  # Filtrer par taille
+            areas.append(area)
             shape_count += 1
             total_area += area
-            total_perimeter +=perimeter
+            total_perimeter += perimeter
             cv2.drawContours(edges, [approx], -1, (255, 0, 0), 2)
             cv2.circle(edges, (cx, cy), 5, (255, 0, 0), -1)
+            cv2.drawContours(filled_contours, [approx], -1, 255, -1)  # Fill the contour with white
+
     mean_area = total_area / shape_count if shape_count > 0 else 0
     mean_perimeter = total_perimeter / shape_count if shape_count > 0 else 0
-    return edges, [shape_count, mean_area, mean_perimeter]
+    area_variance = np.var(areas) if shape_count > 0 else 0
+    area_std_dev = np.std(areas) if shape_count > 0 else 0
+    return edges, filled_contours, [shape_count, mean_area, area_variance, area_std_dev, mean_perimeter]
+
+
+def imfilter(im,noyau):
+    # Creation du bordage en miroir 
+    h,w = np.shape(noyau)
+    hbis = int(np.floor(h/2))
+    wbis = int(np.floor(w/2))
+    im_bis = np.pad(im, ((hbis,hbis),(wbis,wbis)),'symmetric')
+    [Hbis,Wbis] = im_bis.shape
+    # Delete le bordage 
+    conv = sp.signal.convolve2d(im_bis, noyau)
+    conv_bis = conv[hbis:Hbis-hbis, wbis:Wbis-wbis]
+    return conv_bis
+
+# Filtre dérivatuer, passe haut 
+def Prewitt(im): 
+    noyau_horiz = np.array([[-1, 0, 1]])
+    noyau_vert = np.array([[-1], [0], [1]])
+
+    im_horiz = imfilter(im,noyau_horiz)
+    im_vert = imfilter(im,noyau_vert)
+    im_contour = np.sqrt(im_horiz**2 + im_vert**2)
+    return im_contour
+
+###########################################################################
+###### Define the quantifications to determine which image is better
+###########################################################################
+def quantification(im, mask):
+    # Normaliser pour que les valeurs dans les deux images soient les mêmes 
+    im = im / 255 if np.max(im) > 1 else im
+    mask = mask / 255 if np.max(mask) > 1 else mask
+    im = im.astype(np.uint8)
+    mask = mask.astype(np.uint8)
+
+    FP = np.sum((im == 1) & (mask == 0))
+    FN = np.sum((im == 0) & (mask == 1))
+    VP = np.sum((im == 1) & (mask == 1))
+    VN = np.sum((im == 0) & (mask == 0))
+    precision = VP / (VP + FP) if (VP + FP) > 0 else 0
+    recall = VP / (VP + FN) if (VP + FN) > 0 else 0
+    f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+    return [FP, FN, VP, VN, precision, recall, f1_score]
 
 def name_exists(df, name):
     return (df['Filter'] == name).any()
 
-def fillDataframe(name, im, bin_im, df, mask, nb):
+def fillDataframe(name, bin_im, df, mask, nb):
     name = f'{name}_{nb}'
-    edges, contour = contoursCaracteristics(bin_im)
-    new_name = f'Contours_{name}'
-    drawOverlapPlot(f'{new_name}_bis', nb, im, edges, 0.4, colormap2=colors.ListedColormap(['white', 'red']), name1 = 'Detected edges over original image')
-    draw2Plots(new_name, nb, mask, edges, name1 = 'Vérité Terrain ', name2=f'Contours Image seuillée avec {name}')
+    empty = [0, 0, 0, 0, 0]
     quantif = quantification(bin_im, mask)
-    quantif = quantif + contour
+    quantif = quantif + empty
+    if name_exists(df, name):
+        df.drop(df[df['Filter'] == name].index, inplace = True)
+    quantif.insert(0, name)
+    df.loc[len(df.index)] = quantif
+    return df
+
+def fillDataframeShapes(name, bin_im, df, mask, nb, contour_values):
+    name = f'{name}_{nb}'
+    quantif = quantification(bin_im, mask)
+    quantif = quantif + contour_values
     if name_exists(df, name):
         df.drop(df[df['Filter'] == name].index, inplace = True)
     quantif.insert(0, name)
