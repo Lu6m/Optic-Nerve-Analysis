@@ -1,6 +1,9 @@
 from Image_comparison_functions import *
-
 import matplotlib.pyplot as plt
+
+#############################################################################
+#### Run the code, it should work automatically : py Image_comparison.py
+#############################################################################
 
 # All the path 
 projet_path = os.getcwd()
