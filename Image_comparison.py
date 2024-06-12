@@ -1,5 +1,4 @@
 from Image_comparison_functions import *
-from Image_comparison_thresh import *
 
 import matplotlib.pyplot as plt
 
