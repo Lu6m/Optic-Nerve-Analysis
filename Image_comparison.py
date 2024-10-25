@@ -7,10 +7,9 @@ import matplotlib.pyplot as plt
 
 # All the path 
 home = os.getcwd()
-project_path = os.path.join(projet_path, "Datasets")
-print(projet_path)
-image_path = os.path.join(projet_path, "Lame_criblee")
-mask_path = os.path.join(projet_path, "Terrain")
+project_path = os.path.join(home, "Datasets")
+image_path = os.path.join(project_path, "Lame_criblee")
+mask_path = os.path.join(project_path, "Terrain")
 result_dir_path = os.path.join(home, "Results")
 if not os.path.exists(result_dir_path):
     os.makedirs(result_dir_path)
@@ -28,7 +27,7 @@ def imagesPrinting(image_path):
         if not os.path.exists(result_path):
             os.makedirs(result_path)
 
-        mask = loadMask(im_name)
+        mask = loadMask(mask_path, im_name)
         drawOverlapPlot(result_path, "Overlap", nb, im, mask, 0.3, colormap2=colors.ListedColormap(['white', 'red']))
 
         name = "Rectangle_free"

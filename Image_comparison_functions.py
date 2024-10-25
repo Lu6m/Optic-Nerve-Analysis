@@ -26,12 +26,12 @@ def loadImage(image_path, nb):
     im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
     return im_name, im
 
-def loadMask(im_name):
+def loadMask(mask_path, im_name):
     # Charger le .mat
-    mat = scipy.io.loadmat(f'Terrain/{im_name}_VT.mat')
+    mat = scipy.io.loadmat(os.path.join(mask_path,f'{im_name}_VT.mat'))
     # Récupérer juste la matrice et la mettre dnas la varibale mask (car binaire)
     mask = mat['seeds']
-    plt.imsave(f'Terrain/{im_name}_VT.png', mask, cmap=plt.cm.gray)
+    plt.imsave(os.path.join(mask_path,f'{im_name}_VT.png'), mask, cmap=plt.cm.gray)
     return mask
 
 ###########################################################################
